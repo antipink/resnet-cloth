@@ -10,6 +10,7 @@ import cfg
 from data import LFWReader, ARFaceReader, PCDReader, MixedReader, PEALReader
 from data import TripletGenerator
 from keras.applications import ResNet50
+from keras.callbacks import ReduceLROnPlateau, CSVLogger, EarlyStopping, TensorBoard, ModelCheckpoint
 
 
 def triplet_loss(inputs, dist='sqeuclidean', margin='maxplus'):
@@ -112,21 +113,24 @@ if __name__=='__main__':
     embedding_model, triplet_model = GetModel()
     
     
-    
+    tbCallBack = TensorBoard(log_dir='./Graph') 
     
     for layer in embedding_model.layers[-2:]:
         layer.trainable = True
     for layer in embedding_model.layers[:-2]:
         layer.trainable = False
-        
-    triplet_model.compile(loss=None, optimizer=Adam(0.00002))
+    filepath = "./weights/{epoch:02d}-{val_loss:.2f}.hdf5"
+    early_stopper = EarlyStopping(min_delta=0.001, patience=6)
+    checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True)        
+    triplet_model.compile(loss=None, optimizer=Adam(0.002))
     history = triplet_model.fit_generator(gen_tr, 
                               validation_data=gen_te,  
-                              epochs=5, 
+                              epochs=20, 
                               verbose=1, 
                               workers=4,
-                              steps_per_epoch=100, 
-                              validation_steps=50)
+                              steps_per_epoch=300, 
+                              validation_steps=100,
+                              callbacks=[early_stopper, tbCallBack])
     
     
     
@@ -145,7 +149,7 @@ if __name__=='__main__':
     #                           steps_per_epoch=500,
     #                           validation_steps=20)
     #
-    # embedding_model.save_weights(cfg.dir_model_tuned)
+    embedding_model.save(cfg.dir_model)
 
     
     
