@@ -24,6 +24,19 @@ def _CountFiles(root):
         count += _CountFiles(subfolder)
     return count
 
+class DataSetReader1:
+    __metaclass__ = ABCMeta
+
+    def __init__(self, dir_images, folder_list):
+        self.root = dir_images
+        self.data_size = _CountFiles(self.root)
+
+    @abstractmethod
+    def GetTriplet(self):
+        pass
+
+    def GetDataSize(self):
+        return self.data_size
 
 class DataSetReader:
     __metaclass__ = ABCMeta
@@ -202,6 +215,56 @@ class LFWReader(DataSetReader):
 
         return path_anchor, path_pos, path_neg
 
+
+
+class LFWReader1(DataSetReader1):
+    def __init__(self, dir_images, folder_list):
+        super().__init__(dir_images, folder_list)
+        self.list_classes = folder_list
+        self.not_single = [c for c in self.list_classes if len(listdir(join(self.root, c))) > 1]
+        self.list_classes_idx = range(len(self.list_classes))
+        self.not_single_idx = range(len(self.not_single))
+
+        self.weights_not_single = [len(listdir(join(self.root, c))) for c in self.not_single]
+        self.weights_not_single = np.array(self.weights_not_single)
+        self.weights_not_single = self.weights_not_single / np.sum(self.weights_not_single)
+
+        self.weights = [len(listdir(join(self.root, c))) for c in self.list_classes]
+        self.weights = np.array(self.weights)
+        self.weights = self.weights / np.sum(self.weights)
+
+    def GetTriplet(self):
+        # positive and anchor classes are selected from folders where have more than two pictures
+        idx_class_pos = np.random.choice(self.not_single_idx, 1, p=self.weights_not_single)[0]
+        name_pos = self.not_single[idx_class_pos]
+        dir_pos = join(self.root, name_pos)
+        [idx_img_anchor, idx_img_pos] = np.random.choice(range(len(listdir(dir_pos))), 2, replace=False)
+
+        pos_names_list = listdir(dir_pos)
+
+        # negative classes are selected from all folders
+        while True:
+            idx_class_neg = np.random.choice(self.list_classes_idx, 1, p=self.weights)[0]
+            if idx_class_neg != idx_class_pos:
+                break
+        name_neg = self.list_classes[idx_class_neg]
+        dir_neg = join(self.root, name_neg)
+        idx_img_neg = np.random.choice(range(len(listdir(dir_neg))), 1)[0]
+        neg_names_list = listdir(dir_neg)
+
+        # picture names starts from 1, not 0
+        # idx_img_anchor += 1
+        # idx_img_pos += 1
+        # idx_img_neg += 1
+
+        # path_anchor = join(dir_pos, name_pos+'_'+'%04d' % idx_img_anchor + '.jpg')
+        # path_pos = join(dir_pos, name_pos+'_'+'%04d' % idx_img_pos + '.jpg')
+        # path_neg = join(dir_neg, name_neg+'_'+'%04d' % idx_img_neg + '.jpg')
+        path_anchor = join(dir_pos, pos_names_list[idx_img_anchor])
+        path_pos = join(dir_pos, pos_names_list[idx_img_pos])
+        path_neg = join(dir_neg, neg_names_list[idx_img_neg])
+
+        return path_anchor, path_pos, path_neg
 
 '''
 mix a list of readers together

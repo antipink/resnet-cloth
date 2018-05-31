@@ -7,10 +7,12 @@ from keras.layers import Input, GlobalMaxPooling2D, Dropout, Dense, Lambda
 from sklearn.preprocessing import normalize
 from vggface import VggFace
 import cfg
-from data import LFWReader, ARFaceReader, PCDReader, MixedReader, PEALReader
+from data import LFWReader, ARFaceReader, PCDReader, MixedReader, PEALReader, LFWReader1
 from data import TripletGenerator
 from keras.applications import ResNet50
 from keras.callbacks import ReduceLROnPlateau, CSVLogger, EarlyStopping, TensorBoard, ModelCheckpoint
+import os
+# from numba import jit
 
 
 def triplet_loss(inputs, dist='sqeuclidean', margin='maxplus'):
@@ -30,7 +32,8 @@ def triplet_loss(inputs, dist='sqeuclidean', margin='maxplus'):
         loss = K.log(1 + K.exp(loss))
     return K.mean(loss)
 
-    
+
+# @jit
 def triplet_loss_np(inputs, dist='sqeuclidean', margin='maxplus'):
     anchor, positive, negative = inputs
     positive_distance = np.square(anchor - positive)
@@ -106,8 +109,24 @@ if __name__=='__main__':
     #
     # reader_tr = MixedReader([reader_LFW, reader_Pose, reader_Accessory])
     # reader_te = MixedReader([reader_PCD, reader_AR])
-    reader_tr = LFWReader(dir_images=cfg.path_LFW)
-    reader_te = LFWReader(dir_images=cfg.path_LFW)
+    train_reader_list = []
+    val_reader_list = []
+    for folder in os.listdir(cfg.path_LFW):
+        train_list = []
+        val_list = []
+        for sub_folder in os.listdir(os.path.join(cfg.path_LFW, folder)):
+            if np.random.uniform(0, 1) > 0.9:
+                val_list.append(sub_folder)
+            else:
+                train_list.append(sub_folder)
+        print(len(train_list), len(val_list))
+        reader_tr = LFWReader1(dir_images=os.path.join(cfg.path_LFW, folder), folder_list = train_list)
+        reader_va = LFWReader1(dir_images=os.path.join(cfg.path_LFW, folder), folder_list = val_list)
+        train_reader_list.append(reader_tr)
+        val_reader_list.append(reader_va)
+
+    reader_tr = MixedReader(train_reader_list)
+    reader_te = MixedReader(val_reader_list)
     gen_tr = TripletGenerator(reader_tr)
     gen_te = TripletGenerator(reader_te)
     embedding_model, triplet_model = GetModel()

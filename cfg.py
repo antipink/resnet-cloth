@@ -9,7 +9,7 @@ dir_model_v2 = join(_dir_models, 'vgg-face-keras-fc-tensorflow-v2.h5')
 
 
 
-path_LFW = './img/WOMEN/Dresses/'
+path_LFW = './img_resnet/'
 path_AR = 'E:\\DM\\Faces\\Data\\ARFace\\aligned'
 path_PCD = 'E:\\DM\\Faces\\Data\\PCD\\aligned'
 path_Pose = 'E:\\DM\\Faces\\Data\\PEAL_Pose'
