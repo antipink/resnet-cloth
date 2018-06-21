@@ -74,7 +74,7 @@ def triplet_loss_np(inputs, dist='sqeuclidean', margin='maxplus'):
     return np.mean(loss)
 
 def check_loss():
-    batch_size = 10
+    batch_size = 16
     shape = (batch_size, 4096)
 
     p1 = normalize(np.random.random(shape))
@@ -131,24 +131,9 @@ if __name__=='__main__':
     #
     # reader_tr = MixedReader([reader_LFW, reader_Pose, reader_Accessory])
     # reader_te = MixedReader([reader_PCD, reader_AR])
-    train_reader_list = []
-    val_reader_list = []
-    for folder in os.listdir(cfg.path_LFW):
-        train_list = []
-        val_list = []
-        for sub_folder in os.listdir(os.path.join(cfg.path_LFW, folder)):
-            if np.random.uniform(0, 1) > 0.8:
-                val_list.append(sub_folder)
-            else:
-                train_list.append(sub_folder)
-        print(folder, len(train_list), len(val_list))
-        reader_tr = LFWReader1(dir_images=os.path.join(cfg.path_LFW, folder), folder_list = train_list)
-        reader_va = LFWReader1(dir_images=os.path.join(cfg.path_LFW, folder), folder_list = val_list)
-        train_reader_list.append(reader_tr)
-        val_reader_list.append(reader_tr)
+    reader_tr = LFWReader(dir_images=cfg.path_LFW)
+    reader_te = LFWReader(dir_images=cfg.path_LFW)
 
-    reader_tr = MixedReader(train_reader_list)
-    reader_te = MixedReader(val_reader_list)
     gen_tr = TripletGenerator(reader_tr)
     gen_te = TripletGenerator(reader_te)
     embedding_model, triplet_model = GetModel()
@@ -163,14 +148,14 @@ if __name__=='__main__':
     filepath = "./weights/{epoch:02d}-{val_loss:.2f}.hdf5"
     early_stopper = EarlyStopping(min_delta=0.001, patience=6)
     checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True)        
-    triplet_model.compile(loss=None, optimizer=Adam(0.002))
+    triplet_model.compile(loss=None, optimizer=Adam(0.01))
     history = triplet_model.fit_generator(gen_tr, 
                               validation_data=gen_te,  
-                              epochs= 100, 
+                              epochs= 20, 
                               verbose=1, 
                               workers=4,
                               steps_per_epoch=300, 
-                              validation_steps=200,
+                              validation_steps=100,
                               callbacks=[early_stopper, tbCallBack])
     
     

@@ -8,10 +8,10 @@ from os.path import join, exists, isdir
 from PIL import Image
 import matplotlib.pyplot as plt
 from abc import ABCMeta, abstractmethod
-
+#from keras.applications.resnet50 import preprocess_input as pi
 from vggface import preprocess_input
 import cfg
-
+from keras_applications.imagenet_utils import preprocess_input as pi
 
 def _CountFiles(root):
     count = 0
@@ -315,6 +315,9 @@ def TripletGenerator(reader):
             img_anchor = _Flip(_ReadAndResize(path_anchor))
             img_pos = _Flip(_ReadAndResize(path_pos))
             img_neg = _Flip(_ReadAndResize(path_neg))
+            img_anchor = pi(img_anchor, mode = 'torch')
+            img_pos = pi(img_pos, mode ='torch')
+            img_neg = pi(img_neg,  mode = 'torch')
             list_pos.append(img_pos)
             list_anchor.append(img_anchor)
             list_neg.append(img_neg)
