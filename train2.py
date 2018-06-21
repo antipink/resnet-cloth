@@ -1,6 +1,6 @@
 import numpy as np
 from keras import backend as K
-from keras.models import Model
+from keras.models import Model, load_model
 from keras.optimizers import Adam
 from keras.layers import Input, GlobalMaxPooling2D, Dropout, Dense, Lambda
 # from keras.callbacks import ModelCheckpoint, EarlyStopping
@@ -103,8 +103,9 @@ def GetBaseModel(embedding_dim):
     
 def GetModel():
     # embedding_model = VggFace(is_origin=True)
-    embedding_dim = 128
-    embedding_model = GetBaseModel(embedding_dim)
+    embedding_dim = 256
+    # embedding_model = GetBaseModel(embedding_dim)
+    embedding_model = load_model('./weights/resnet-256-ff.h5')    
     input_shape = (cfg.image_size, cfg.image_size, 3)
     anchor_input = Input(input_shape, name='anchor_input')
     positive_input = Input(input_shape, name='positive_input')
@@ -136,27 +137,31 @@ if __name__=='__main__':
 
     gen_tr = TripletGenerator(reader_tr)
     gen_te = TripletGenerator(reader_te)
+
+
+
+
+
+
     embedding_model, triplet_model = GetModel()
     
     
     tbCallBack = TensorBoard(log_dir='./Graph') 
     
-    for layer in embedding_model.layers[-2:]:
-        layer.trainable = True
-    for layer in embedding_model.layers[:-2]:
-        layer.trainable = False
     filepath = "./weights/{epoch:02d}-{val_loss:.2f}.hdf5"
     early_stopper = EarlyStopping(min_delta=0.001, patience=6)
     checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True)        
-    triplet_model.compile(loss=None, optimizer=Adam(0.01))
+
+
+    triplet_model.compile(loss=None, optimizer=Adam(0.005))
     history = triplet_model.fit_generator(gen_tr, 
                               validation_data=gen_te,  
-                              epochs= 50, 
+                              epochs= 20, 
                               verbose=1, 
                               workers=4,
                               steps_per_epoch=300, 
                               validation_steps=100,
-                              callbacks=[tbCallBack])
+                              callbacks= [tbCallBack])
     
     
     

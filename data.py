@@ -11,7 +11,7 @@ from abc import ABCMeta, abstractmethod
 #from keras.applications.resnet50 import preprocess_input as pi
 from vggface import preprocess_input
 import cfg
-from keras_applications.imagenet_utils import preprocess_input as pi
+from keras.applications.imagenet_utils import preprocess_input as pi
 
 def _CountFiles(root):
     count = 0
